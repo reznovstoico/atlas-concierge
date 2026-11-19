@@ -3974,16 +3974,33 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { className: 'appl
     const statusByISO2 = {};
     const resolvedPins = [];
 
-    for (const t of trips) {
-      const mainCity = String(t.city || '').split(/[,/&•-]/)[0].trim();
-      const geo = await autoGeocode(mainCity, t.country);
-      if (!geo) continue;
+const routeLines = [];
 
-      resolvedPins.push({ trip: t, geo });
-      if (geo.iso2) {
-        if (t.status === 'Concluídas') statusByISO2[geo.iso2] = 'Concluídas';
-        else if (t.status === 'Próximas' && statusByISO2[geo.iso2] !== 'Concluídas') statusByISO2[geo.iso2] = 'Próximas';
-        else if (!statusByISO2[geo.iso2]) statusByISO2[geo.iso2] = 'Em Planejamento';
+    for (const t of trips) {
+      const citiesList = String(t.city || '')
+        .split(/[,/&•+–-]|\s+e\s+|\s+and\s+/i)
+        .map(c => c.trim())
+        .filter(c => c.length >= 2);
+
+      const tripCoords = [];
+
+      for (const cityName of citiesList) {
+        const geo = await autoGeocode(cityName, t.country);
+        if (!geo) continue;
+
+        resolvedPins.push({ trip: t, cityName, geo });
+        tripCoords.push([geo.lat, geo.lng]);
+
+        if (geo.iso2) {
+          if (t.status === 'Concluídas') statusByISO2[geo.iso2] = 'Concluídas';
+          else if (t.status === 'Próximas' && statusByISO2[geo.iso2] !== 'Concluídas') statusByISO2[geo.iso2] = 'Próximas';
+          else if (!statusByISO2[geo.iso2]) statusByISO2[geo.iso2] = 'Em Planejamento';
+        }
+      }
+
+      if (tripCoords.length > 1) {
+        const color = t.status === 'Concluídas' ? '#30D158' : (t.status === 'Próximas' ? '#0A84FF' : '#FF9F0A');
+        routeLines.push({ coords: tripCoords, color });
       }
     }
 
@@ -4006,7 +4023,11 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { className: 'appl
       }).addTo(mapInstance);
     }
 
-    resolvedPins.forEach(({ trip: t, geo }) => {
+    routeLines.forEach(r => {
+      L.polyline(r.coords, { color: r.color, weight: 2, opacity: 0.75, dashArray: '5, 7' }).addTo(mapInstance);
+    });
+
+    resolvedPins.forEach(({ trip: t, cityName, geo }) => {
       const color = t.status === 'Concluídas' ? '#30D158' : (t.status === 'Próximas' ? '#0A84FF' : '#FF9F0A');
       const icon = L.divIcon({
         className: 'bg-transparent border-0', iconSize: [22, 22], iconAnchor: [11, 11],
@@ -4014,7 +4035,8 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { className: 'appl
       });
       L.marker([geo.lat, geo.lng], { icon }).bindPopup(`
         <div class="p-3 text-xs space-y-2">
-          <div class="font-bold text-sm text-white">${t.flag||'🌍'} ${t.city}</div>
+          <div class="font-bold text-sm text-white">${t.flag||'🌍'} ${cityName}</div>
+          <div class="text-zinc-300 text-[11px]">Roteiro: ${t.city}</div>
           <div class="text-zinc-400">${t.dates||''} • <span style="color:${color}">${t.status}</span></div>
           <button onclick="document.getElementById('atlasMapOverlay').classList.add('hidden'); if(typeof app!=='undefined') app.openTrip('${t.id}')" class="w-full py-1.5 rounded-lg bg-[#0A84FF] text-white font-semibold">Abrir Roteiro →</button>
         </div>
