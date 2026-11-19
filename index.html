@@ -3776,6 +3776,7 @@ Clima: 12°C a 19°C • Jaqueta corta-vento para neblina matinal no Moldava
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
+  .apple-dark-tiles { filter: invert(100%) hue-rotate(180deg) brightness(82%) contrast(115%) saturate(20%); }
   #appleTravelMap { background: #000 !important; }
   .apple-map-popup .leaflet-popup-content-wrapper { background: rgba(28,28,30,.92)!important; backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,.15); border-radius: 18px!important; color: #fff; }
   .apple-map-popup .leaflet-popup-tip { background: rgba(28,28,30,.92)!important; }
@@ -3841,8 +3842,7 @@ Clima: 12°C a 19°C • Jaqueta corta-vento para neblina matinal no Moldava
 
     if (mapInstance) mapInstance.remove();
     mapInstance = L.map('appleTravelMap', { center: [48.5, 11.5], zoom: 4, minZoom: 2, attributionControl: false });
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', { subdomains: 'abcd' }).addTo(mapInstance);
-
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { className: 'apple-dark-tiles' }).addTo(mapInstance);
     if (!geoCache) {
       try { geoCache = await (await fetch('https://cdn.jsdelivr.net/gh/johan/world.geo.json@master/countries.geo.json')).json(); } catch(e) {}
     }
